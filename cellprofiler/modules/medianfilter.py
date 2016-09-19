@@ -1,6 +1,8 @@
 """
 
-Median filter
+<strong>Median filter</strong>
+
+Reduce noise in an image
 
 """
 
