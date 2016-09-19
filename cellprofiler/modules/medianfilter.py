@@ -2,7 +2,9 @@
 
 <strong>Median filter</strong>
 
-Reduce noise in an image
+Reduce salt-and-pepper noise in an image while preserving borders. Use a structuring element with a small size to
+remove small elements of noise. A larger size will remove larger elements of noise at the risk of can blurring other
+image features.
 
 """
 
