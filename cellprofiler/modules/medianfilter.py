@@ -14,7 +14,6 @@ import cellprofiler.setting
 import numpy
 import skimage.exposure
 import skimage.filters
-import skimage.morphology
 
 
 class MedianFilter(cellprofiler.module.Module):
@@ -59,45 +58,67 @@ class MedianFilter(cellprofiler.module.Module):
 
         x_data = x.pixel_data
 
-        x_data = skimage.img_as_uint(x_data)
+        # x_data = skimage.img_as_uint(x_data)
 
-        #TODO: use actual structuring_element when 3D is available for skimage.filters
-        selem = self.__structuring_element()
+        if x.dimensions is 3 or x.multichannel:
+            selem = self.__structuring_element()
 
-        y_data = numpy.zeros_like(x_data)
+            y_data = numpy.zeros_like(x_data)
 
-        for plane, image in enumerate(x_data):
-            y_data[plane] = skimage.filters.rank.median(image, selem)
+            for plane, image in enumerate(x_data):
+                y_data[plane] = skimage.filters.rank.median(image, selem)
+        else:
+            y_data = skimage.filters.rank.median(x_data, self.structuring_element.value)
 
         y_data = skimage.exposure.rescale_intensity(y_data * 1.0)
 
         y = cellprofiler.image.Image(
             image=y_data,
-            parent_image=x
+            parent_image=x,
+            dimensions=x.dimensions
         )
 
         images.add(y_name, y)
+
+        # import IPython
+        # IPython.embed()
 
         if self.show_window:
             workspace.display_data.x_data = x_data
 
             workspace.display_data.y_data = y_data
 
+            workspace.display_data.dimensions = x.dimensions
+
+            workspace.display_data.cmap = None if x.multichannel else "gray"
+
     def display(self, workspace, figure):
-        figure.set_grids((1, 2))
+        figure.set_subplots((2, 1), dimensions=workspace.display_data.dimensions)
 
-        figure.gridshow(0, 0, workspace.display_data.x_data)
+        figure.subplot_imshow(
+            0,
+            0,
+            workspace.display_data.x_data,
+            dimensions=workspace.display_data.dimensions,
+            colormap=workspace.display_data.cmap
+        )
 
-        figure.gridshow(0, 1, workspace.display_data.y_data)
+        figure.subplot_imshow(
+            1,
+            0,
+            workspace.display_data.y_data,
+            dimensions=workspace.display_data.dimensions,
+            colormap=workspace.display_data.cmap
+        )
 
     def __structuring_element(self):
         if self.structuring_element.shape == "ball":
-            return skimage.morphology.disk(self.structuring_element.size)
+            self.structuring_element.shape = "disk"
 
         if self.structuring_element.shape == "cube":
-            return skimage.morphology.square(self.structuring_element.size)
+            self.structuring_element.shape = "square"
 
         if self.structuring_element.shape == "octahedron":
-            return skimage.morphology.diamond(self.structuring_element.size)
+            self.structuring_element.shape = "diamond"
 
         return self.structuring_element.value

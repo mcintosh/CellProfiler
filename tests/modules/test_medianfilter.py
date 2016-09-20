@@ -35,4 +35,4 @@ def test_run(image, module, image_set, workspace):
 
     desired = skimage.exposure.rescale_intensity(desired * 1.0)
 
-    numpy.testing.assert_array_equal(actual.pixel_data, desired)
+    numpy.testing.assert_array_almost_equal(actual.pixel_data, desired)
