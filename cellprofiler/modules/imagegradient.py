@@ -1,6 +1,12 @@
+# -*- coding: utf-8 -*-
+
 """
 
-Image gradient
+<strong>Image gradient</strong>
+
+Compute the local gradient of the image. The image gradient is useful for finding boundaries of objects. In a gradient
+image, pixels at the edges of bright regions of interest have the brightest intensities. Pixels in the background or
+in the centers of regions of interest have zero or dimmer intensity.
 
 """
 
@@ -8,52 +14,36 @@ import cellprofiler.image
 import cellprofiler.module
 import cellprofiler.setting
 import numpy
-import skimage.exposure
 import skimage.filters
 import skimage.morphology
 
 
-class ImageGradient(cellprofiler.module.Module):
-    category = "Image Processing"
+class ImageGradient(cellprofiler.module.ImageProcessing):
     module_name = "ImageGradient"
+
     variable_revision_number = 1
 
     def create_settings(self):
-        self.x_name = cellprofiler.setting.ImageNameSubscriber(
-            "Input"
-        )
+        super(ImageGradient, self).create_settings()
 
-        self.y_name = cellprofiler.setting.ImageNameProvider(
-            "Output",
-            "OutputImage"
-        )
-
-        self.structure = cellprofiler.setting.Choice(
-            "Structuing element",
-            [
-                "Ball"
-            ]
-        )
-
-        self.radius = cellprofiler.setting.Integer(
-            "Radius",
-            1
+        self.structuring_element = cellprofiler.setting.StructuringElement(
+            doc="""Neighborhood in which to compute the local gradient. Select a two-dimensional shape such as "disk"
+            for images, and a three-dimensional shape such as "ball" for volumes. A larger size will compute the gradient
+            over larger patches of the image and can obscure smaller features."""
         )
 
     def settings(self):
-        return [
-            self.x_name,
-            self.y_name,
-            self.structure,
-            self.radius
+        __settings__ = super(ImageGradient, self).settings()
+
+        return __settings__ + [
+            self.structuring_element
         ]
 
     def visible_settings(self):
-        return [
-            self.x_name,
-            self.y_name,
-            self.structure,
-            self.radius
+        __settings__ = super(ImageGradient, self).visible_settings()
+
+        return __settings__ + [
+            self.structuring_element
         ]
 
     def run(self, workspace):
@@ -61,31 +51,26 @@ class ImageGradient(cellprofiler.module.Module):
 
         y_name = self.y_name.value
 
-        radius = self.radius.value
-
-        structure = self.structure.value
-
         images = workspace.image_set
 
         x = images.get_image(x_name)
 
         x_data = x.pixel_data
 
-        x_data = skimage.img_as_uint(x_data)
+        if x.dimensions is 3 or x.multichannel:
+            y_data = numpy.zeros_like(x_data)
 
-        disk = skimage.morphology.disk(radius)
-
-        y_data = numpy.zeros_like(x_data)
-
-        for z, image in enumerate(x_data):
-            y_data[z] = skimage.filters.rank.gradient(image, disk)
+            for z, image in enumerate(x_data):
+                y_data[z] = skimage.filters.rank.gradient(image, self.__structuring_element())
+        else:
+            y_data = skimage.filters.rank.gradient(x_data, self.structuring_element.value)
 
         y = cellprofiler.image.Image(
-            dimensions=3,
-            parent_image=x
+            image=y_data,
+            convert=False,
+            dimensions=x.dimensions,
+            parent_image=x,
         )
-
-        y.pixel_data = y_data
 
         images.add(y_name, y)
 
@@ -94,9 +79,20 @@ class ImageGradient(cellprofiler.module.Module):
 
             workspace.display_data.y_data = y_data
 
-    def display(self, workspace, figure):
-        figure.set_grids((1, 2))
+            workspace.display_data.dimensions = x.dimensions
 
-        figure.gridshow(0, 0, workspace.display_data.x_data)
+    def __structuring_element(self):
+        shape = self.structuring_element.shape
 
-        figure.gridshow(0, 1, workspace.display_data.y_data)
+        size = self.structuring_element.size
+
+        if shape == "ball":
+            return skimage.morphology.disk(size)
+
+        if shape == "cube":
+            return skimage.morphology.square(size)
+
+        if shape == "octahedron":
+            return skimage.morphology.diamond(size)
+
+        return self.structuring_element.value

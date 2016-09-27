@@ -1674,10 +1674,10 @@ class Choice(Setting):
 
 
 class StructuringElement(Setting):
-    def __init__(self, shape="disk", size=1):
+    def __init__(self, shape="disk", size=1, *args, **kwargs):
         self.shape = shape
         self.size = size
-        super(StructuringElement, self).__init__("Structuring element", self.get_value())
+        super(StructuringElement, self).__init__("Structuring element", self.get_value(), *args, **kwargs)
 
     @staticmethod
     def get_choices():

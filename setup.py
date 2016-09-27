@@ -341,7 +341,6 @@ setuptools.setup(
             "pytest",
             "python-bioformats",
             "pyzmq",
-            "scikit-image",
             "scipy"
         ],
         keywords="",
