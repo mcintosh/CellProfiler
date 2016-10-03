@@ -1,6 +1,3 @@
-'''test_converttoimage.py - test the ConvertToImage module
-'''
-
 import base64
 import unittest
 import zlib
