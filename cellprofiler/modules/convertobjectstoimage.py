@@ -100,9 +100,9 @@ class ConvertObjectsToImage(cpm.Module):
         elif self.image_mode == IM_UINT16:
             pixel_data = np.zeros(objects.shape, np.int32)
         else:
-            pixel_data = np.zeros((objects.shape[0], objects.shape[1], 3))
+            pixel_data = np.zeros(objects.shape + (3,))
         convert = True
-        for labels, indices in objects.get_labels():
+        for labels, _ in objects.get_labels():
             mask = labels != 0
             if np.all(~ mask):
                 continue
@@ -134,8 +134,13 @@ class ConvertObjectsToImage(cpm.Module):
                     cm_name = self.colormap.value
                 cm = matplotlib.cm.get_cmap(cm_name)
                 mapper = matplotlib.cm.ScalarMappable(cmap=cm)
-                pixel_data[mask, :] += \
-                    mapper.to_rgba(renumber_labels_for_display(labels))[mask, :3]
+
+                if labels.ndim is 3:
+                    for index, plane in enumerate(mask):
+                        pixel_data[index, plane, :] = mapper.to_rgba(renumber_labels_for_display(labels[index]))[plane, :3]
+                else:
+                    pixel_data[mask, :] += mapper.to_rgba(renumber_labels_for_display(labels))[mask, :3]
+
                 alpha[mask] += 1
             elif self.image_mode == IM_UINT16:
                 pixel_data[mask] = labels[mask]
@@ -148,8 +153,12 @@ class ConvertObjectsToImage(cpm.Module):
             pixel_data[mask, :] = pixel_data[mask, :] / alpha[mask][:, np.newaxis]
         else:
             pixel_data[mask] = pixel_data[mask] / alpha[mask]
-        image = cpi.Image(pixel_data, parent_image=objects.parent_image,
-                          convert=convert)
+        image = cpi.Image(
+            pixel_data,
+            parent_image=objects.parent_image,
+            convert=convert,
+            dimensions=len(objects.shape)
+        )
         workspace.image_set.add(self.image_name.value, image)
         if self.show_window:
             workspace.display_data.ijv = objects.ijv

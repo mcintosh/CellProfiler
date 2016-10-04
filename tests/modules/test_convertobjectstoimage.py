@@ -41,10 +41,36 @@ def object_set(objects):
 
 
 @pytest.fixture(scope="module")
-def objects():
+def image_segmentation():
+    return numpy.reshape(numpy.arange(256), (16, 16))
+
+
+@pytest.fixture(scope="module")
+def volume_segmentation():
+    segmentation = numpy.reshape(numpy.arange(256), (16, 16))
+
+    segmentation = numpy.tile(segmentation, (3, 1))
+
+    segmentation = numpy.reshape(segmentation, (3, 16, 16))
+
+    return segmentation
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        image_segmentation(),
+        volume_segmentation()
+    ],
+    ids=[
+        "image_segmentation",
+        "volume_segmentation"
+    ]
+)
+def objects(request):
     objects = cellprofiler.object.Objects()
 
-    objects.segmented = numpy.reshape(numpy.arange(256), (16, 16))
+    objects.segmented = request.param
 
     return objects
 
@@ -141,13 +167,28 @@ def test_run_binary(workspace, module):
 
     module.run(workspace)
 
-    pixel_data = workspace.image_set.get_image("outputimage").pixel_data
+    image = workspace.image_set.get_image("outputimage")
 
-    assert not pixel_data[0, 0]
+    objects = workspace.get_objects("inputobjects")
 
-    i, j = numpy.mgrid[0:16, 0:16]
+    assert image.dimensions == objects.segmented.ndim
 
-    assert numpy.all(pixel_data[i * j > 0])
+    pixel_data = image.pixel_data
+
+    assert pixel_data.shape == objects.shape
+
+    if objects.segmented.ndim is 2:
+        assert not pixel_data[0, 0]
+
+        assert numpy.all(pixel_data[:, 1:])
+
+        assert numpy.all(pixel_data[1:, :])
+    else:
+        assert not numpy.all(pixel_data[:, 0, 0])
+
+        assert numpy.all(pixel_data[:, :, 1:])
+
+        assert numpy.all(pixel_data[:, 1:, :])
 
 
 def test_run_grayscale(workspace, module):
@@ -159,9 +200,22 @@ def test_run_grayscale(workspace, module):
 
     module.run(workspace)
 
-    pixel_data = workspace.image_set.get_image("outputimage").pixel_data
+    image = workspace.image_set.get_image("outputimage")
+
+    objects = workspace.get_objects("inputobjects")
+
+    assert image.dimensions == objects.segmented.ndim
+
+    pixel_data = image.pixel_data
+
+    assert pixel_data.shape == objects.shape
 
     expected = numpy.reshape(numpy.arange(256).astype(numpy.float32) / 255, (16, 16))
+
+    if objects.segmented.ndim is 3:
+        expected = numpy.tile(expected, (3, 1))
+
+        expected = numpy.reshape(expected, (3, 16, 16))
 
     assert numpy.all(pixel_data == expected)
 
@@ -178,9 +232,15 @@ def test_run_color(workspace, module):
 
         module.run(workspace)
 
-        pixel_data = workspace.image_set.get_image(IMAGE_NAME).pixel_data
+        image = workspace.image_set.get_image("outputimage")
 
-        assert numpy.product(pixel_data.shape) == 256 * 3
+        objects = workspace.get_objects("inputobjects")
+
+        assert image.dimensions == objects.segmented.ndim
+
+        pixel_data = image.pixel_data
+
+        assert pixel_data.shape == objects.shape + (3,)
 
 
 def test_run_uint16(workspace, module):
@@ -192,15 +252,27 @@ def test_run_uint16(workspace, module):
 
     module.run(workspace)
 
-    pixel_data = workspace.image_set.get_image(IMAGE_NAME).pixel_data
+    image = workspace.image_set.get_image("outputimage")
+
+    objects = workspace.get_objects("inputobjects")
+
+    assert image.dimensions == objects.segmented.ndim
+
+    pixel_data = image.pixel_data
+
+    assert pixel_data.shape == objects.shape
 
     expected = numpy.reshape(numpy.arange(256), (16, 16))
+
+    if objects.segmented.ndim is 3:
+        expected = numpy.tile(expected, (3, 1))
+
+        expected = numpy.reshape(expected, (3, 16, 16))
 
     assert numpy.all(pixel_data == expected)
 
 
 class TestConvertObjectsToImage(unittest.TestCase):
-    # TODO: volumetric IJV support
     def make_workspace_ijv(self):
         module = cellprofiler.modules.convertobjectstoimage.ConvertToImage()
         shape = (14, 16)
