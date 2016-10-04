@@ -160,39 +160,54 @@ class ConvertObjectsToImage(cpm.Module):
             dimensions=len(objects.shape)
         )
         workspace.image_set.add(self.image_name.value, image)
+
         if self.show_window:
-            workspace.display_data.ijv = objects.ijv
+            if image.dimensions is 2:
+                workspace.display_data.ijv = objects.ijv
+            else:
+                workspace.display_data.segmented = objects.segmented
+
             workspace.display_data.pixel_data = pixel_data
+
+            workspace.display_data.dimensions = image.dimensions
 
     def display(self, workspace, figure):
         pixel_data = workspace.display_data.pixel_data
 
-        figure.set_subplots((2, 1))
+        dimensions = workspace.display_data.dimensions
 
-        figure.subplot_imshow_ijv(
-            0,
-            0,
-            workspace.display_data.ijv,
-            shape=workspace.display_data.pixel_data.shape[:2],
-            title="Original: %s" % self.object_name.value
-        )
+        cmap = None if self.image_mode == IM_COLOR else "gray"
 
-        if self.image_mode == IM_BINARY:
-            figure.subplot_imshow_bw(
-                1,
+        figure.set_subplots((2, 1), dimensions=dimensions)
+
+        # TODO: volumetric IJV
+        if dimensions is 2:
+            figure.subplot_imshow_ijv(
                 0,
-                pixel_data,
-                self.image_name.value,
-                sharexy=figure.subplot(0, 0)
+                0,
+                workspace.display_data.ijv,
+                shape=workspace.display_data.pixel_data.shape[:2],
+                title="Original: %s" % self.object_name.value
             )
         else:
-            figure.subplot_imshow_grayscale(
-                1,
+            figure.subplot_imshow(
                 0,
-                pixel_data,
-                self.image_name.value,
-                sharexy=figure.subplot(0, 0)
+                0,
+                workspace.display_data.segmented,
+                self.object_name.value,
+                title="Original: %s" % self.object_name.value,
+                dimensions=dimensions
             )
+
+        figure.subplot_imshow(
+            1,
+            0,
+            pixel_data,
+            self.image_name.value,
+            sharexy=figure.subplot(0, 0),
+            colormap=cmap,
+            dimensions=dimensions
+        )
 
     def upgrade_settings(self, setting_values, variable_revision_number,
                          module_name, from_matlab):
