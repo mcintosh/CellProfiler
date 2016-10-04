@@ -221,7 +221,26 @@ def test_run_grayscale(workspace, module):
 
 
 def test_run_color(workspace, module):
-    for color in cellprofiler.modules.convertobjectstoimage.COLORMAPS:
+    for color in [
+        "Default",
+        "autumn",
+        "bone",
+        "colorcube",
+        "cool",
+        "copper",
+        "flag",
+        "gray",
+        "hot",
+        "hsv",
+        "jet",
+        "lines",
+        "pink",
+        "prism",
+        "spring",
+        "summer",
+        "white",
+        "winter"
+    ]:
         module.object_name.value = "inputobjects"
 
         module.image_name.value = "outputimage"
@@ -308,7 +327,7 @@ class TestConvertObjectsToImage(unittest.TestCase):
     def test_03_01_binary_ijv(self):
         workspace, module, ijv = self.make_workspace_ijv()
         self.assertTrue(isinstance(module, cellprofiler.modules.convertobjectstoimage.ConvertObjectsToImage))
-        module.image_mode.value = cellprofiler.modules.convertobjectstoimage.IM_BINARY
+        module.image_mode.value = "Binary (black & white)"
         module.run(workspace)
         pixel_data = workspace.image_set.get_image(IMAGE_NAME).pixel_data
         self.assertEqual(len(numpy.unique(ijv[:, 0] + ijv[:, 1] * pixel_data.shape[0])),
@@ -318,7 +337,7 @@ class TestConvertObjectsToImage(unittest.TestCase):
     def test_03_02_gray_ijv(self):
         workspace, module, ijv = self.make_workspace_ijv()
         self.assertTrue(isinstance(module, cellprofiler.modules.convertobjectstoimage.ConvertObjectsToImage))
-        module.image_mode.value = cellprofiler.modules.convertobjectstoimage.IM_GRAYSCALE
+        module.image_mode.value = "Grayscale"
         module.run(workspace)
         pixel_data = workspace.image_set.get_image(IMAGE_NAME).pixel_data
 
@@ -339,7 +358,7 @@ class TestConvertObjectsToImage(unittest.TestCase):
     def test_03_03_color_ijv(self):
         workspace, module, ijv = self.make_workspace_ijv()
         self.assertTrue(isinstance(module, cellprofiler.modules.convertobjectstoimage.ConvertObjectsToImage))
-        module.image_mode.value = cellprofiler.modules.convertobjectstoimage.IM_COLOR
+        module.image_mode.value = "Color"
         module.run(workspace)
         pixel_data = workspace.image_set.get_image(IMAGE_NAME).pixel_data
         #
