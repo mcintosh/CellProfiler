@@ -166,23 +166,33 @@ class ConvertObjectsToImage(cpm.Module):
 
     def display(self, workspace, figure):
         pixel_data = workspace.display_data.pixel_data
+
         figure.set_subplots((2, 1))
+
         figure.subplot_imshow_ijv(
-                0, 0, workspace.display_data.ijv,
-                shape=workspace.display_data.pixel_data.shape[:2],
-                title="Original: %s" % self.object_name.value)
+            0,
+            0,
+            workspace.display_data.ijv,
+            shape=workspace.display_data.pixel_data.shape[:2],
+            title="Original: %s" % self.object_name.value
+        )
+
         if self.image_mode == IM_BINARY:
-            figure.subplot_imshow_bw(1, 0, pixel_data,
-                                     self.image_name.value,
-                                     sharexy=figure.subplot(0, 0))
-        elif pixel_data.shape[1] == 2:
-            figure.subplot_imshow_grayscale(1, 0, pixel_data,
-                                            self.image_name.value,
-                                            sharexy=figure.subplot(0, 0))
+            figure.subplot_imshow_bw(
+                1,
+                0,
+                pixel_data,
+                self.image_name.value,
+                sharexy=figure.subplot(0, 0)
+            )
         else:
-            figure.subplot_imshow_grayscale(1, 0, pixel_data,
-                                            self.image_name.value,
-                                            sharexy=figure.subplot(0, 0))
+            figure.subplot_imshow_grayscale(
+                1,
+                0,
+                pixel_data,
+                self.image_name.value,
+                sharexy=figure.subplot(0, 0)
+            )
 
     def upgrade_settings(self, setting_values, variable_revision_number,
                          module_name, from_matlab):
